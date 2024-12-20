@@ -66,7 +66,7 @@ def p(phi,i,y,mu_current,omega_current,sigma_current,table_t=np.array([1,3,7,14,
         print("error, omega = 0")
     else:
         matrix=(1/omega_current)*np.eye(4)
-        value -=(phi-mu_current).T @ matrix @ (phi[i,:]-mu_current)/2
+        value -=(phi-mu_current).T @ matrix @ (phi-mu_current)/2
         for j in range(K):
             value -= (1/(2*sigma_current))*(y[i,j]-f(table_t[j],phi))**2
 
@@ -79,24 +79,26 @@ def proposition_prior(current_mu,current_omega,current_phi,current_sigma,current
     for i in range(N):
         proposition_=np.random.multivariate_normal(current_mu,current_omega*np.eye(4))
         q_ratio = multivariate_normal.pdf(proposition_,current_mu,current_omega*np.eye(4))/multivariate_normal.pdf(current_phi[i,:],current_mu,current_omega*np.eye(4))
-        acc_rate = np.minimum(1,q_ratio*p(proposition_,i,current_y,current_mu,current_omega,current_sigma)/p(current_phi[i,:],i,current_y,current_mu,current_omega,current_sigma))
+        acc_rate = np.exp(np.minimum(0,np.log(q_ratio)+np.log(p(proposition_,i,current_y,current_mu,current_omega,current_sigma))-np.log(p(current_phi[i,:],i,current_y,current_mu,current_omega,current_sigma))))
         u = np.random.rand()
         if u<acc_rate:
             update[i,:]=proposition_
-
+        else:
+            update[i,:]=current_phi[i,:]
     return update
 
 def proposition_multidim_rw(current_phi,current_omega,current_sigma,current_y,current_mu,lambd=1):
     #multidimensional random walk proposal
     N,K = current_phi.shape
     proposition = np.zeros((N,K))
-    density = 1
     for i in range(N):
         proposition_=np.random.multivariate_normal(current_phi[i,:],lambd*current_omega*np.eye(4))
-        acc_rate = np.minimum(1,p(proposition_,i,current_y,current_mu,current_omega,current_sigma)/p(current_phi,i,current_y,current_mu,current_omega,current_sigma))
+        acc_rate = np.exp(np.minimum(0,np.log(p(proposition_,i,current_y,current_mu,current_omega,current_sigma))-np.log(p(current_phi[i,:],i,current_y,current_mu,current_omega,current_sigma))))
         u = np.random.rand()
         if u<acc_rate:
             proposition[i,:]=proposition_
+        else:
+            proposition[i,:]=current_phi[i,:]
     return proposition
 
 def proposition_unidim_rw(current_phi,lambd,current_y,current_mu,current_omega,current_sigma):
@@ -106,7 +108,7 @@ def proposition_unidim_rw(current_phi,lambd,current_y,current_mu,current_omega,c
     for i in range(N):
         line_i = np.copy(current_phi[i,:])
         for j in range(K):
-            step = np.random.normal(0,lambd[j])
+            step = np.random.normal(0,lambd)
             proposition[i,j]+=step
             acc_rate = np.minimum(1,p(proposition[i,:],i,current_y,current_mu,current_omega,current_sigma)/p(line_i,i,current_y,current_mu,current_omega,current_sigma))
             u = np.random.rand()
@@ -143,12 +145,20 @@ def update_y_cens(phi,t,sigma,LOQ):
     y = m - sigma*x
     return y
 
-            
-def S(y,phi):
 
+mu=np.array([12,8,np.log(0.5),np.log(0.05)])
+w=0.3*np.eye(4)
+sigma=0.065
+table_t=np.array([1,3,7,14,28,56])
 
-def SAEM(y_0,)
-
+y,phi = viral_load(40)
+phi_test = phi +0.5
+print("real value")
+print(phi[0:3,:])
+print("avant update")
+print(phi_test[0:3,:])
+print("après update")
+print(hm_algorithm_update(y,phi_test,0.3,mu,sigma,0.3,3)[0:3,:])
 
 #à faire, calculer loi de phi^m sachant y obs, y censuré (l'estimation m-1) et avec les paramètres theta^(m-1)
 #simuler avec MH grâce à la loi trouvée (pour le calcul de l'acceptation rejet), les lois de proposition
